@@ -161,12 +161,11 @@ module.exports = function(G) {
         if(fields.lon){
             fields.lon = round(fields.lon, 3)
         }
-        console.log(fields)
+        // console.log(fields);
         G.location.find({lat: fields.lat, lon: fields.lon})
                     .populate('comments')
-                    .select('_id name cost mrp sellerID closetname fimage')
                     .exec(function(err, data){
-                        console.log(data);
+                        // console.log(data.status);
                         res.json(data);
                     })
     })
