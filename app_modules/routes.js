@@ -43,13 +43,170 @@ module.exports = function(G) {
     });
 
 
-    // Add Comment
+    // post comment
+    // Expects [username, lat, lon, comment]
     G.app.post('/postComment', function(req, res){
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
+            if(fields.lat){
+                fields.lat = round(fields.lat, 3)
+            }
+            if(fields.lon){
+                fields.lon = round(fields.lon, 3)
+            }
+            G.user.findOne({name: fields.username}, '_id name', function(err, data){
+                if(!err){
+                    if(data){
+                        user_id = data._id;
+                        G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id', function(err, data){
+                            if(!err){
+                                if(data){
+                                    // location already available on db
+                                    var comment_data = {
+                                        comment: fields.comment,
+                                        user_id: user_id,
+                                        loc_id: data._id
+                                    }
 
+                                    createSaveComment(comment_data, function(err, data){
+                                        res.json(data);
+                                    })
+
+                                }else{
+                                    // new location
+                                    var loc_data = {
+                                        lat: fields.lat,
+                                        lon: fields.lon,
+                                        stars:{
+                                            count: 0,
+                                            value: 0
+                                        },
+                                        comments: []
+                                    }
+
+                                    var nlocation = new G.location(loc_data);
+                                    nlocation.save(function(err, location){
+                                        if(!err){
+                                            console.log("Created new location")
+                                            var comment_data = {
+                                                comment: fields.comment,
+                                                user_id: user_id,
+                                                loc_id: location._id
+                                            }
+
+                                            createSaveComment(comment_data, function(err, data){
+                                                res.json(data);
+                                            })
+
+                                        }
+                                    })
+                                }
+                            }
+                        })
+                    }else{
+                        res.json({
+                            err: 'INVALID_USERNAME',
+                            msg: 'Please try with a registered username'
+                        });
+                    }
+                }else{
+                    // invalid username
+                    res.json({
+                        err: 'INVALID_USERNAME',
+                        msg: 'Please try with a registered username'
+                    });
+                }
+            })
         });
+    });
+
+
+    function createSaveComment(data, callback){
+        // console.log(data)
+        var comment_data = {
+            text: data.comment,
+            commentor: data.user_id,
+            location: data.loc_id
+        }
+        var ncomment = G.comment(comment_data);
+        ncomment.save(function(err, comment){
+            if(!err){
+                console.log("New comment saved for a known location");
+                // now add this comment it to location table
+                console.log(comment);
+
+                G.location.update(
+                    {_id: data.loc_id},
+                    {$push: {comments: comment._id}},
+                    function(err, loc){
+                        console.log(loc);
+                    }
+                    );
+
+            }
+            callback(err, {
+                err: 'SUCCESS_COMMENT',
+                msg: 'Your comment has been successfully posted.'
+            })
+        });
+    }
+
+
+    G.app.get('/getComments', function(req, res){
+        console.log(req.query);
+        var fields = req.query
+        if(fields.lat){
+            fields.lat = round(fields.lat, 3)
+        }
+        if(fields.lon){
+            fields.lon = round(fields.lon, 3)
+        }
+        console.log(fields)
+        G.location.find({lat: fields.lat, lon: fields.lon})
+                    .populate('comments')
+                    .select('_id name cost mrp sellerID closetname fimage')
+                    .exec(function(err, data){
+                        console.log(data);
+                        res.json(data);
+                    })
     })
+
+    // Post Rating
+    G.app.post('/postRating', function(req, res){
+        var form = new G.formidable.IncomingForm();
+        form.parse(req, function(err, fields, files) {
+            G.user.findOne({name: fields.username}, 'name', function(err, data){
+                if(!err){
+                    if(!data){
+                        // unique username
+                        var saltRounds = 10;
+                        G.bcrypt.hash(fields.password, saltRounds, function(err, hash) {
+                            var userdata = {
+                                name: fields.username,
+                                password: hash
+                            }
+                            console.log(userdata)
+                            var user = G.user(userdata);
+                            user.save(function(err){
+                                if(!err){
+                                    console.log('Created new user.');
+                                }
+                            });
+                        })
+                        
+                    }else{
+                        res.json({
+                            err: 'USERNAME_TAKEN',
+                            msg: 'Please try with a different username'
+                        });
+                    }
+                }
+            })
+        });
+    });
+
+
+
 
     // Route for sending json response for designs
     G.app.post('/getDesigns', function(req, res) {
