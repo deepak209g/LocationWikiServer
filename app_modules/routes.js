@@ -6,7 +6,38 @@ module.exports = function(G) {
     //     res.sendFile(G.root + "/pages/home.html");
     // });
 
-
+//login user
+    G.app.post('/login', function(req, res){
+        var form = new G.formidable.IncomingForm();
+        form.parse(req, function(err, fields, files) {
+            G.user.findOne({name: fields.username}, 'name password', function(err, data){
+                if(!err){
+                    if(!data){
+                        res.json({
+                            err: 'INVALID_USERNAME',
+                            msg: 'Username doesn\'t exit. Please register.'
+                        });
+                    }
+                    else{
+                        G.bcrypt.compare(fields.password, data.password).then(function(success) {
+                            if(success == true){
+                                res.json({
+                                    err: 'SUCCESS_LOGIN',
+                                    msg: 'User has successfully logged in.'
+                                });
+                            }
+                            else{
+                                res.json({
+                                    err: 'INVALID_PASSWORD',
+                                    msg: 'Please enter the correct password for registered user.'
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    });
 
 // Register new user
     G.app.post('/registerUser', function(req, res){
@@ -54,79 +85,86 @@ module.exports = function(G) {
             if(fields.lon){
                 fields.lon = round(fields.lon, 3)
             }
-            G.user.findOne({name: fields.username}, '_id name', function(err, data){
+            G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id', function(err, data){
                 if(!err){
                     if(data){
-                        user_id = data._id;
-                        G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id', function(err, data){
+                        // location already available on db
+                        var comment_data = {
+                            comment: fields.comment,
+                            username: fields.username,
+                            lat: fields.lat,
+                            lon: fields.lon,
+                            loc_id: data._id
+                        }
+
+                        createSaveComment(comment_data, function(err, data){
+                            res.json(data);
+                        })
+
+                    }else{
+                        // new location
+                        var loc_data = {
+                            lat: fields.lat,
+                            lon: fields.lon,
+                            stars:{
+                                count: 0,
+                                value: 0
+                            },
+                            ratings: [],
+                            comments: []
+                        }
+
+                        var nlocation = new G.location(loc_data);
+                        nlocation.save(function(err, location){
                             if(!err){
-                                if(data){
-                                    // location already available on db
-                                    var comment_data = {
-                                        comment: fields.comment,
-                                        user_id: user_id,
-                                        loc_id: data._id
-                                    }
-
-                                    createSaveComment(comment_data, function(err, data){
-                                        res.json(data);
-                                    })
-
-                                }else{
-                                    // new location
-                                    var loc_data = {
-                                        lat: fields.lat,
-                                        lon: fields.lon,
-                                        stars:{
-                                            count: 0,
-                                            value: 0
-                                        },
-                                        comments: []
-                                    }
-
-                                    var nlocation = new G.location(loc_data);
-                                    nlocation.save(function(err, location){
-                                        if(!err){
-                                            console.log("Created new location")
-                                            var comment_data = {
-                                                comment: fields.comment,
-                                                user_id: user_id,
-                                                loc_id: location._id
-                                            }
-
-                                            createSaveComment(comment_data, function(err, data){
-                                                res.json(data);
-                                            })
-
-                                        }
-                                    })
+                                console.log("Created new location")
+                                var comment_data = {
+                                    comment: fields.comment,
+                                    username: fields.username,
+                                    lat: fields.lat,
+                                    lon: fields.lon,
+                                    loc_id: location._id
                                 }
+
+                                createSaveComment(comment_data, function(err, data){
+                                    res.json(data);
+                                })
+
                             }
                         })
-                    }else{
-                        res.json({
-                            err: 'INVALID_USERNAME',
-                            msg: 'Please try with a registered username'
-                        });
                     }
-                }else{
-                    // invalid username
-                    res.json({
-                        err: 'INVALID_USERNAME',
-                        msg: 'Please try with a registered username'
-                    });
                 }
             })
         });
     });
 
+    // get commets
+    // expects [lat, lon]
+    G.app.get('/getComments', function(req, res){
+        console.log(req.query);
+        var fields = req.query
+        if(fields.lat){
+            fields.lat = round(fields.lat, 3)
+        }
+        if(fields.lon){
+            fields.lon = round(fields.lon, 3)
+        }
+        console.log(fields)
+        G.location.find({lat: fields.lat, lon: fields.lon})
+                    .populate('comments')
+                    .exec(function(err, data){
+                        console.log(data);
+                        res.json(data);
+                    })
+    })
 
     function createSaveComment(data, callback){
         // console.log(data)
         var comment_data = {
             text: data.comment,
-            commentor: data.user_id,
-            location: data.loc_id
+            username: data.username,
+            lat: data.lat,
+            lon: data.lon
         }
         var ncomment = G.comment(comment_data);
         ncomment.save(function(err, comment){
@@ -151,53 +189,63 @@ module.exports = function(G) {
         });
     }
 
-
-    G.app.get('/getComments', function(req, res){
-        console.log(req.query);
-        var fields = req.query
-        if(fields.lat){
-            fields.lat = round(fields.lat, 3)
-        }
-        if(fields.lon){
-            fields.lon = round(fields.lon, 3)
-        }
-        // console.log(fields);
-        G.location.find({lat: fields.lat, lon: fields.lon})
-                    .populate('comments')
-                    .exec(function(err, data){
-                        // console.log(data.status);
-                        res.json(data);
-                    })
-    })
-
+    
     // Post Rating
+    // Expects [username, lat, lon, rating]
     G.app.post('/postRating', function(req, res){
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
-            G.user.findOne({name: fields.username}, 'name', function(err, data){
+            if(fields.lat){
+                fields.lat = round(fields.lat, 3)
+            }
+            if(fields.lon){
+                fields.lon = round(fields.lon, 3)
+            }
+            G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id stars', function(err, data){
                 if(!err){
-                    if(!data){
-                        // unique username
-                        var saltRounds = 10;
-                        G.bcrypt.hash(fields.password, saltRounds, function(err, hash) {
-                            var userdata = {
-                                name: fields.username,
-                                password: hash
-                            }
-                            console.log(userdata)
-                            var user = G.user(userdata);
-                            user.save(function(err){
-                                if(!err){
-                                    console.log('Created new user.');
-                                }
-                            });
+                    if(data){
+                        // location already available on db
+                        // update location
+                        r_data = {
+                            loc_id: data._id,
+                            stars: data.stars,
+                            username: fields.username,
+                            rating: fields.rating 
+                        }
+                        updateRatingData(r_data, function(err, data){
+                            res.json(data);
                         })
-                        
+
                     }else{
-                        res.json({
-                            err: 'USERNAME_TAKEN',
-                            msg: 'Please try with a different username'
-                        });
+                        // new location
+                        var loc_data = {
+                            lat: fields.lat,
+                            lon: fields.lon,
+                            stars:{
+                                count: 0,
+                                value: 0
+                            },
+                            ratings: [],
+                            comments: []
+                        }
+
+                        var nlocation = new G.location(loc_data);
+                        nlocation.save(function(err, location){
+                            if(!err){
+                                console.log("Created new location")
+                                r_data = {
+                                    loc_id: location._id,
+                                    stars: location.stars,
+                                    username: fields.username,
+                                    rating: fields.rating 
+                                }
+
+                                updateRatingData(r_data, function(err, data){
+                                    res.json(data);
+                                })
+
+                            }
+                        })
                     }
                 }
             })
@@ -206,6 +254,29 @@ module.exports = function(G) {
 
 
 
+    function updateRatingData(data, callback){
+        // console.log(data)
+        data.rating = parseInt(Math.abs(data.rating))
+        data.rating = data.rating > 5 ? 5: data.rating
+        stars = data.stars
+        stars.value = (stars.count*stars.value + data.rating)/(stars.count + 1)
+        stars.count++;
+        G.location.update(
+            {_id: data.loc_id,  'ratings.user': {$ne: data.username}},
+            {
+                $push: {ratings: {user: data.username, rating: data.rating}},
+                $set: { stars: stars }
+            },
+            function(err, numofchanges){
+                console.log(numofchanges);
+                callback(err, {
+                    err: 'SUCCESS_RATING',
+                    msg: 'Your rating has been successfully posted.'
+                })
+            }
+        );
+
+    }
 
     // Route for sending json response for designs
     G.app.post('/getDesigns', function(req, res) {
