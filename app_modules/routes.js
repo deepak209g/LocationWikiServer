@@ -6,7 +6,38 @@ module.exports = function(G) {
     //     res.sendFile(G.root + "/pages/home.html");
     // });
 
-
+//login user
+    G.app.post('/login', function(req, res){
+        var form = new G.formidable.IncomingForm();
+        form.parse(req, function(err, fields, files) {
+            G.user.findOne({name: fields.username}, 'name password', function(err, data){
+                if(!err){
+                    if(!data){
+                        res.json({
+                            err: 'INVALID_USERNAME',
+                            msg: 'Username doesn\'t exit. Please register.'
+                        });
+                    }
+                    else{
+                        G.bcrypt.compare(fields.password, data.password).then(function(success) {
+                            if(success == true){
+                                res.json({
+                                    err: 'SUCCESS_LOGIN',
+                                    msg: 'User has successfully logged in.'
+                                });
+                            }
+                            else{
+                                res.json({
+                                    err: 'INVALID_PASSWORD',
+                                    msg: 'Please enter the correct password for registered user.'
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        });
+    });
 
 // Register new user
     G.app.post('/registerUser', function(req, res){
@@ -158,7 +189,7 @@ module.exports = function(G) {
         });
     }
 
-
+    
     // Post Rating
     // Expects [username, lat, lon, rating]
     G.app.post('/postRating', function(req, res){
