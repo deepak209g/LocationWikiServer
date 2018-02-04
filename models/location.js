@@ -3,6 +3,10 @@ var locationSchema = mongoose.Schema({
   lat: Number,
   lon: Number,
   stars: {count: Number, value: Number},
+  ratings: [{
+  	user: {type: String, unique: true},
+  	rating: Number
+  }],
   comments: [{type: mongoose.Schema.Types.ObjectId, ref: 'comment'}]
 });
 

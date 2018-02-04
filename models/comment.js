@@ -1,8 +1,9 @@
 var mongoose = require('mongoose');
 var commentSchema = mongoose.Schema({
   text: String,
-  commentor: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
-  location:  {type: mongoose.Schema.Types.ObjectId, ref: 'location'}
+  username: String,
+  lat: Number,
+  lon: Number
 });
 
 module.exports = mongoose.model('comment', commentSchema);
