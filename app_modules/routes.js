@@ -1,11 +1,17 @@
 module.exports = function(G) {
     var sessCnt = 1;
-
     // // route for the main page
     // G.app.get('/', function(req, res) {
     //     res.sendFile(G.root + "/pages/home.html");
     // });
 
+// check if session exists
+    
+    G.app.get('/getSession', function(req, res){
+        res.json({
+            err: req.session.isLogin
+        });
+    });
 //login user
     G.app.post('/login', function(req, res){
         var form = new G.formidable.IncomingForm();
@@ -20,10 +26,12 @@ module.exports = function(G) {
                     }
                     else{
                         G.bcrypt.compare(fields.password, data.password).then(function(success) {
+                            console.log(success);
                             if(success == true){
+                                req.session.isLogin = true;
                                 res.json({
                                     err: 'SUCCESS_LOGIN',
-                                    msg: 'User has successfully logged in.'
+                                    msg: 'User successfully logged in.'
                                 });
                             }
                             else{
@@ -65,7 +73,7 @@ module.exports = function(G) {
                     }else{
                         res.json({
                             err: 'USERNAME_TAKEN',
-                            msg: 'Please try with a different username'
+                            msg: 'Username Taken!! Please try with a different username'
                         });
                     }
                 }
@@ -103,6 +111,7 @@ module.exports = function(G) {
 
                     }else{
                         // new location
+                        console.log("yes");
                         var loc_data = {
                             lat: fields.lat,
                             lon: fields.lon,
@@ -131,6 +140,9 @@ module.exports = function(G) {
                                 })
 
                             }
+                            else{
+                                console.log(err);
+                            }
                         })
                     }
                 }
@@ -153,7 +165,7 @@ module.exports = function(G) {
         G.location.find({lat: fields.lat, lon: fields.lon})
                     .populate('comments')
                     .exec(function(err, data){
-                        console.log(data);
+                        // console.log(data);
                         res.json(data);
                     })
     })
@@ -189,7 +201,7 @@ module.exports = function(G) {
         });
     }
 
-    
+
     // Post Rating
     // Expects [username, lat, lon, rating]
     G.app.post('/postRating', function(req, res){
