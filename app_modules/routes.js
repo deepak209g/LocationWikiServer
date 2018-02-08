@@ -65,7 +65,10 @@ module.exports = function(G) {
                             var user = G.user(userdata);
                             user.save(function(err){
                                 if(!err){
-                                    console.log('Created new user.');
+                                    res.json({
+                                        err: 'NEW_USER',
+                                        msg: 'User ' + fields.username + ' has been successfully registered.'
+                                    });
                                 }
                             });
                         })
@@ -166,7 +169,14 @@ module.exports = function(G) {
                     .populate('comments')
                     .exec(function(err, data){
                         // console.log(data);
-                        res.json(data);
+                        if(data[0])
+                            res.json(data[0].comments);
+                        else{
+                            res.json({
+                                    err: 'NO_COMMENT',
+                                    msg: 'Sorry!! No comments found at this location.'
+                                });
+                        }
                     })
     })
 
@@ -201,6 +211,29 @@ module.exports = function(G) {
         });
     }
 
+    //getRating
+    G.app.get('/getRating', function(req, res){
+        console.log(req.query);
+        var fields = req.query
+        if(fields.lat){
+            fields.lat = round(fields.lat, 3)
+        }
+        if(fields.lon){
+            fields.lon = round(fields.lon, 3)
+        }
+        console.log(fields)
+        G.location.find({lat: fields.lat, lon: fields.lon})
+                    .exec(function(err, data){
+                        if(data[0])
+                            res.json(data[0].stars);
+                        else{
+                            res.json({
+                                    err: 'NO_RATING',
+                                    msg: 'Sorry!! No Rating found at this location.'
+                                });
+                        }
+                    })
+    })
 
     // Post Rating
     // Expects [username, lat, lon, rating]
@@ -268,11 +301,13 @@ module.exports = function(G) {
 
     function updateRatingData(data, callback){
         // console.log(data)
+        console.log(data.rating)
         data.rating = parseInt(Math.abs(data.rating))
         data.rating = data.rating > 5 ? 5: data.rating
         stars = data.stars
         stars.value = (stars.count*stars.value + data.rating)/(stars.count + 1)
         stars.count++;
+        console.log(stars)
         G.location.update(
             {_id: data.loc_id,  'ratings.user': {$ne: data.username}},
             {
