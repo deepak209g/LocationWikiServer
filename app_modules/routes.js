@@ -169,7 +169,7 @@ module.exports = function(G) {
                     .populate('comments')
                     .exec(function(err, data){
                         // console.log(data);
-                        if(data[0])
+                        if(data[0] && data[0].comments.length!=0)
                             res.json(data[0].comments);
                         else{
                             res.json({
@@ -251,15 +251,42 @@ module.exports = function(G) {
                     if(data){
                         // location already available on db
                         // update location
-                        r_data = {
-                            loc_id: data._id,
-                            stars: data.stars,
-                            username: fields.username,
-                            rating: fields.rating 
-                        }
-                        updateRatingData(r_data, function(err, data){
-                            res.json(data);
-                        })
+                        console.log(data.ratings);
+                        G.location.findOne({_id:data._id, 'ratings.user':fields.username}, 'ratings.$._id', function(err, out){
+                            if(!err){
+                                if(out){
+                                    var stars = data.stars;
+                                    stars.value = (stars.value*stars.count-out.ratings[0].rating+fields.rating)/stars.count;
+                                    G.location.update(
+                                        {_id: data._id,  'ratings.user': fields.username},
+                                        {
+                                            $set: { 
+                                                stars: stars,
+                                                'ratings.$.rating':fields.rating
+                                             }
+                                        },
+                                        function(err, numofchanges){
+                                            console.log(numofchanges);
+                                            res.json({
+                                                err: 'SUCCESS_RATING',
+                                                msg: 'Your rating has been successfully posted.'
+                                            });
+                                        }
+                                    );
+                                }
+                                else{
+                                    r_data = {
+                                        loc_id: data._id,
+                                        stars: data.stars,
+                                        username: fields.username,
+                                        rating: fields.rating 
+                                    }
+                                    updateRatingData(r_data, function(err, data){
+                                        res.json(data);
+                                    })
+                                }
+                            }
+                        });
 
                     }else{
                         // new location
