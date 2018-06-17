@@ -4,7 +4,7 @@ var locationSchema = mongoose.Schema({
   lon: Number,
   stars: {count: Number, value: Number},
   ratings: [{
-  	user: {type: String, unique: true},
+  	user: {type: String},
   	rating: Number
   }],
   comments: [{type: mongoose.Schema.Types.ObjectId, ref: 'comment'}]
