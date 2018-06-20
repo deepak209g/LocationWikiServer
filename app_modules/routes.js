@@ -325,6 +325,16 @@ module.exports = function(G) {
     });
 
 
+    // Expects a search string
+    G.app.get('/search', function(req, res){
+        var fields = req.query
+        G.comment.find({$text: {$search: fields}})
+        // .skip(20)
+        .limit(10)
+        .exec(function(err, docs) {
+            res.json(docs)
+        });
+    })
 
     function updateRatingData(data, callback){
         // console.log(data)
@@ -352,143 +362,7 @@ module.exports = function(G) {
 
     }
 
-    // Route for sending json response for designs
-    G.app.post('/getDesigns', function(req, res) {
-        var form = new G.formidable.IncomingForm();
-        form.parse(req, function(err, fields, files) {
-            var criteria = {};
-            if (fields.sellerID) {
-                criteria.sellerID = fields.sellerID;
-            }
-            if (fields.offset !== 0) {
-                // repeat request from client so it has beforeTime
-                criteria._id = {
-                    $lt: G.mongoose.Types.ObjectId(fields.beforeTime)
-                };
-            }
-            G.design.find(criteria)
-                .sort([
-                    ['_id', -1]
-                ])
-                .limit(fields.limit)
-                .select('_id name cost mrp sellerID closetname fimage')
-                .exec(function(e, data) {
-                    console.log(data);
-                    res.json(data);
-                });
-        });
-    });
 
-    // Route for sending json response for designers
-    G.app.post('/getDesigners', function(req, res) {
-        console.log("getDesigners");
-        var form = new G.formidable.IncomingForm();
-        form.parse(req, function(err, fields, files) {
-            var criteria = {};
-            if (fields.offset !== 0) {
-              // Next requests from the client containing the field beforeTime
-              criteria._id = {
-                  $lt: G.mongoose.Types.ObjectId(fields.beforeTime)
-              };
-            }
-
-            G.seller.find(criteria)
-              .sort([['_id', -1]])
-              .limit(fields.limit)
-              .select('name closetname p_pic')
-              .exec(function(e, data) {
-                console.log(data);
-                res.json(data);
-            });
-        });
-    });
-
-
-    // // Route for desigers dashboard
-    // var hb = require('handlebars');
-    // var fs = require('fs');
-    // var source = fs.readFileSync(G.root + "/pages/designerdashboard.html", 'utf8');
-    // var template = hb.compile(source);
-    // G.app.get('/designerdashboard', function(req, res) {
-    //     if (req.session && req.session.seller_active === true) {
-    //         // session is active. Blah !
-    //         var desc = null;
-    //         if (req.session.p_desc) {
-    //             desc = req.session.p_desc;
-    //             req.session.p_desc = null;
-    //         }
-
-    //         var data = {
-    //             name: req.session.name || "You rock!",
-    //             closetname: req.session.closetname || "My Closet",
-    //             p_pic: 'https://storage.googleapis.com/featherscloset/' + req.session.p_pic,
-    //             p_desc: desc,
-    //             sellerID: req.session.seller_mongoID
-    //         };
-    //         res.send(template(data));
-    //     } else {
-    //         // Session is not active. Huston, we might have a bot!
-    //         res.redirect('/designerlogin');
-    //     }
-    // });
-
-    // // Route for the page of a particular designer
-    // var source_designer = fs.readFileSync(G.root + "/pages/shop_designer.html", 'utf8');
-    // var template_designer = hb.compile(source_designer);
-    // G.app.get('/shop/:closet', function(req, res) {
-    //     console.log('/shop/:closet');
-    //     // some stuff here
-    //     G.seller.findOne({
-    //         closetname: req.params.closet
-    //     }, '_id', function(err, person) {
-    //         if (err) {
-    //             // return error page to the client
-    //         } else {
-    //             var data = {
-    //                 sellerID: person._id
-    //             };
-    //             res.send(template_designer(data));
-    //         }
-    //     });
-
-    // });
-
-
-    // // Route for a particular design
-    // var source_design = fs.readFileSync(G.root + "/pages/design.html", 'utf8');
-    // var template_design = hb.compile(source_design);
-    // G.app.get('/shop/:closet/:design/:mId', function(req, res) {
-    //     console.log('/:closet/:design');
-    //     var id = req.params.mId;
-    //     console.log(id);
-    //     G.design.findOne({
-    //         _id: {$eq: id}
-    //     })
-    //     .select('name cost mrp images tag stars availability info closetname sellerID')
-    //     .exec(function(err, design) {
-    //         if (err) {
-    //             // return error page to the client
-    //             console.log(err);
-    //             console.log("result nahi aaya");
-    //         } else {
-    //             console.log("result aa gaya");
-    //             console.log(design);
-    //             var s = [
-    //                 'star_inactive',
-    //                 'star_inactive',
-    //                 'star_inactive',
-    //                 'star_inactive',
-    //                 'star_inactive',
-    //             ];
-    //             for(var i=0;i< design.stars.value; i++){
-    //               s[i] = 'design_active';
-    //             }
-    //             design.star = s;
-    //             res.send(template_design(design));
-    //         }
-    //     });
-
-    // });
     console.log(G.path.join(G.root , '../IonicProject/www'))
     G.app.use(G.express.static(G.path.join(G.root , '../IonicProject/www')));
 
