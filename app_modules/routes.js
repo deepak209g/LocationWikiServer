@@ -16,7 +16,14 @@ module.exports = function(G) {
     G.app.post('/login', function(req, res){
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
-            G.user.findOne({name: fields.username}, 'name password', function(err, data){
+            console.log(fields);
+            var post_data ={
+                    secret : '6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr',
+                    response : fields.captchaResponse
+            }
+            G.request.post('https://www.google.com/recaptcha/api/siteverify?&secret=6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr&response='+fields.captchaResponse, function(err, captchaRes, body){
+                console.log(body);
+                G.user.findOne({name: fields.username}, 'name password', function(err, data){
                 if(!err){
                     if(!data){
                         res.json({
@@ -44,8 +51,11 @@ module.exports = function(G) {
                     }
                 }
             });
+            });
+            
         });
     });
+
 
 // Register new user
     G.app.post('/registerUser', function(req, res){
@@ -76,7 +86,7 @@ module.exports = function(G) {
                     }else{
                         res.json({
                             err: 'USERNAME_TAKEN',
-                            msg: 'Username Taken!! Please try with a different username'
+                            msg: 'Username Taken!! Please try with a different username.'
                         });
                     }
                 }
@@ -362,7 +372,22 @@ module.exports = function(G) {
 
     }
 
+<<<<<<< HEAD
 
+=======
+    // Route for sending json response for designers
+
+    G.app.get('/search', function(req, res){ 
+        var fields = req.query.param;
+        console.log(fields);
+        G.comment.find(
+            {
+                $text: {$search: fields}
+            }).limit(10) .exec(function(err, docs) { res.json(docs);
+            console.log(docs) });
+    }); 
+    // .skip(20) 
+>>>>>>> 6a59612e3b561990815e1c94a67a564f9f27b07e
     console.log(G.path.join(G.root , '../IonicProject/www'))
     G.app.use(G.express.static(G.path.join(G.root , '../IonicProject/www')));
 

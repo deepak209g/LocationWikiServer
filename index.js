@@ -4,6 +4,8 @@ G.formidable = require('formidable');
 G.util = require('util');
 G.path = require('path')
 //G.fs = require('fs-extra');
+G.request = require('request');
+
 G.mongoose = require('mongoose');
 G.constants = require('./config');
 G.routes = require('./app_modules/routes');
@@ -35,10 +37,7 @@ G.mongoose.connect(G.constants.mongodb, {
 var locationdb = G.mongoose.connection;
 
 
-// Desing schema form desings
 G.comment = require('./models/comment.js');
-
-// New Designer/Seller Schema for seller data in mongodb
 G.location = require('./models/location.js');
 G.user = require('./models/user.js');
 
