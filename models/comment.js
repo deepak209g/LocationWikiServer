@@ -6,4 +6,7 @@ var commentSchema = mongoose.Schema({
   lon: Number
 });
 
+// indexing the text values for search and retrieval
+commentSchema.index({text: 'text'}) 
+
 module.exports = mongoose.model('comment', commentSchema);

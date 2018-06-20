@@ -5,4 +5,6 @@ var userSchema = mongoose.Schema({
   comments: [{type: mongoose.Schema.Types.ObjectId, ref: 'comment'}]
 });
 
+
+
 module.exports = mongoose.model('user', userSchema);
