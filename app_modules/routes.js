@@ -337,14 +337,27 @@ module.exports = function(G) {
 
     // Expects a search string
     G.app.get('/search', function(req, res){
-        var fields = req.query
-        G.comment.find({$text: {$search: fields}})
-        // .skip(20)
-        .limit(10)
-        .exec(function(err, docs) {
-            res.json(docs)
-        });
-    })
+        console.log('Making a search query !')
+        var search_query = req.query.param;
+        var lat = req.query.lat;
+        var lon = req.query.lon;
+        console.log(lat)
+        lat = round(lat, 3)
+        lon = round(lon, 3)
+
+        lat_two_km = {$lt: lat + 0.02, $gt : lat - 0.02}
+        lon_two_km = {$lt: lon + 0.02, $gt : lon - 0.02}
+
+        // console.log(fields);
+        G.comment.find(
+            {
+                $text: {$search: search_query},
+                'lat': lat_two_km,
+                'lon': lon_two_km
+            }).limit(5) .exec(function(err, docs) { res.json(docs);
+            console.log(docs) });
+    }); 
+    // .skip(20) 
 
     function updateRatingData(data, callback){
         // console.log(data)
@@ -372,22 +385,10 @@ module.exports = function(G) {
 
     }
 
-<<<<<<< HEAD
 
-=======
     // Route for sending json response for designers
 
-    G.app.get('/search', function(req, res){ 
-        var fields = req.query.param;
-        console.log(fields);
-        G.comment.find(
-            {
-                $text: {$search: fields}
-            }).limit(10) .exec(function(err, docs) { res.json(docs);
-            console.log(docs) });
-    }); 
-    // .skip(20) 
->>>>>>> 6a59612e3b561990815e1c94a67a564f9f27b07e
+
     console.log(G.path.join(G.root , '../IonicProject/www'))
     G.app.use(G.express.static(G.path.join(G.root , '../IonicProject/www')));
 
