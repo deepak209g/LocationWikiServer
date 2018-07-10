@@ -9,11 +9,14 @@ module.exports = function(G) {
 
 function isValidSession(req){
     try {
-        if (req.session.isLogin == True) {
-            return True
+        if (req.session.isLogin == true) {
+            return true
         }
+    } catch (error) {
+        console.log(error)
+        return false
     }
-    return False
+    return false
 }
 
 
@@ -115,7 +118,7 @@ G.app.post('/registerUser', function(req, res){
     // post comment
     // Expects [username, lat, lon, comment]
     G.app.post('/postComment', function(req, res){
-        if (isValidSession(req) == False){
+        if (isValidSession(req) == false){
             // error occured, session invalid
             res.json({
                 err: 'INVALID_SESSION',
@@ -273,7 +276,7 @@ G.app.post('/registerUser', function(req, res){
     // Post Rating
     // Expects [username, lat, lon, rating]
     G.app.post('/postRating', function(req, res){
-        if (isValidSession(req) == False){
+        if (isValidSession(req) == false){
             // error occured, session invalid
             res.json({
                 err: 'INVALID_SESSION',
