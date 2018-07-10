@@ -6,24 +6,41 @@ module.exports = function(G) {
     // });
 
 // check if session exists
-    
-    G.app.get('/getSession', function(req, res){
-        res.json({
-            err: req.session.isLogin
-        });
+
+function isValidSession(req){
+    try {
+        if (req.session.isLogin == True) {
+            return True
+        }
+    }
+    return False
+}
+
+
+
+G.app.get('/getSession', function(req, res){
+    res.json({
+        err: req.session.isLogin
     });
+});
 //login user
-    G.app.post('/login', function(req, res){
-        var form = new G.formidable.IncomingForm();
-        form.parse(req, function(err, fields, files) {
-            console.log(fields);
-            var post_data ={
-                    secret : '6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr',
-                    response : fields.captchaResponse
+G.app.post('/login', function(req, res){
+    var form = new G.formidable.IncomingForm();
+    form.parse(req, function(err, fields, files) {
+        console.log(fields);
+        var post_data ={
+            secret : '6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr',
+            response : fields.captchaResponse
+        }
+        G.request.post('https://www.google.com/recaptcha/api/siteverify?&secret=6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr&response='+fields.captchaResponse, function(err, captchaRes, body){
+            console.log(body);
+            if(err || body.success == false){
+                res.json({
+                    err: 'CAPTCHA_ERROR',
+                    msg: 'ReCAPTCHA validation error'
+                })
             }
-            G.request.post('https://www.google.com/recaptcha/api/siteverify?&secret=6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr&response='+fields.captchaResponse, function(err, captchaRes, body){
-                console.log(body);
-                G.user.findOne({name: fields.username}, 'name password', function(err, data){
+            G.user.findOne({name: fields.username}, 'name password', function(err, data){
                 if(!err){
                     if(!data){
                         res.json({
@@ -51,19 +68,19 @@ module.exports = function(G) {
                     }
                 }
             });
-            });
-            
         });
+
     });
+});
 
 
 // Register new user
-    G.app.post('/registerUser', function(req, res){
-        var form = new G.formidable.IncomingForm();
-        form.parse(req, function(err, fields, files) {
-            G.user.findOne({name: fields.username}, 'name', function(err, data){
-                if(!err){
-                    if(!data){
+G.app.post('/registerUser', function(req, res){
+    var form = new G.formidable.IncomingForm();
+    form.parse(req, function(err, fields, files) {
+        G.user.findOne({name: fields.username}, 'name', function(err, data){
+            if(!err){
+                if(!data){
                         // unique username
                         var saltRounds = 10;
                         G.bcrypt.hash(fields.password, saltRounds, function(err, hash) {
@@ -91,13 +108,21 @@ module.exports = function(G) {
                     }
                 }
             })
-        });
     });
+});
 
 
     // post comment
     // Expects [username, lat, lon, comment]
     G.app.post('/postComment', function(req, res){
+        if (isValidSession(req) == False){
+            // error occured, session invalid
+            res.json({
+                err: 'INVALID_SESSION',
+                msg: 'Something went wrong. Please login again !!'
+
+            })
+        }
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
             if(fields.lat){
@@ -176,16 +201,16 @@ module.exports = function(G) {
         }
         console.log(fields)
         G.location.find({lat: fields.lat, lon: fields.lon})
-                    .populate('comments')
-                    .exec(function(err, data){
+        .populate('comments')
+        .exec(function(err, data){
                         // console.log(data);
                         if(data[0] && data[0].comments.length!=0)
                             res.json(data[0].comments);
                         else{
                             res.json({
-                                    err: 'NO_COMMENT',
-                                    msg: 'Sorry!! No comments found at this location.'
-                                });
+                                err: 'NO_COMMENT',
+                                msg: 'Sorry!! No comments found at this location.'
+                            });
                         }
                     })
     })
@@ -233,21 +258,29 @@ module.exports = function(G) {
         }
         console.log(fields)
         G.location.find({lat: fields.lat, lon: fields.lon})
-                    .exec(function(err, data){
-                        if(data[0])
-                            res.json(data[0].stars);
-                        else{
-                            res.json({
-                                    err: 'NO_RATING',
-                                    msg: 'Sorry!! No Rating found at this location.'
-                                });
-                        }
-                    })
+        .exec(function(err, data){
+            if(data[0])
+                res.json(data[0].stars);
+            else{
+                res.json({
+                    err: 'NO_RATING',
+                    msg: 'Sorry!! No Rating found at this location.'
+                });
+            }
+        })
     })
 
     // Post Rating
     // Expects [username, lat, lon, rating]
     G.app.post('/postRating', function(req, res){
+        if (isValidSession(req) == False){
+            // error occured, session invalid
+            res.json({
+                err: 'INVALID_SESSION',
+                msg: 'Something went wrong. Please login again !!'
+
+            })
+        }
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
             if(fields.lat){
@@ -273,7 +306,7 @@ module.exports = function(G) {
                                             $set: { 
                                                 stars: stars,
                                                 'ratings.$.rating':fields.rating
-                                             }
+                                            }
                                         },
                                         function(err, numofchanges){
                                             console.log(numofchanges);
@@ -282,7 +315,7 @@ module.exports = function(G) {
                                                 msg: 'Your rating has been successfully posted.'
                                             });
                                         }
-                                    );
+                                        );
                                 }
                                 else{
                                     r_data = {
@@ -350,11 +383,11 @@ module.exports = function(G) {
 
         // console.log(fields);
         G.comment.find(
-            {
-                $text: {$search: search_query},
-                'lat': lat_two_km,
-                'lon': lon_two_km
-            }).limit(5) .exec(function(err, docs) { res.json(docs);
+        {
+            $text: {$search: search_query},
+            'lat': lat_two_km,
+            'lon': lon_two_km
+        }).limit(5) .exec(function(err, docs) { res.json(docs);
             console.log(docs) });
     }); 
     // .skip(20) 
@@ -381,7 +414,7 @@ module.exports = function(G) {
                     msg: 'Your rating has been successfully posted.'
                 })
             }
-        );
+            );
 
     }
 
