@@ -77,6 +77,16 @@ G.app.post('/login', function(req, res){
 });
 
 
+// logout
+G.app.get('/logout', function(req, res){
+    req.session = null;
+    res.json({
+        err: 'SUCCESS_LOGOUT',
+        msg: 'User logged out successfully.'
+    })
+})
+
+
 // Register new user
 G.app.post('/registerUser', function(req, res){
     var form = new G.formidable.IncomingForm();
