@@ -91,6 +91,18 @@ G.app.get('/logout', function(req, res){
 G.app.post('/registerUser', function(req, res){
     var form = new G.formidable.IncomingForm();
     form.parse(req, function(err, fields, files) {
+        var post_data ={
+            secret : '6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr',
+            response : fields.captchaResponse
+        }
+        G.request.post('https://www.google.com/recaptcha/api/siteverify?&secret=6LdLQF8UAAAAACOq5bNlxOLt2pqC2L0Etr4BkgZr&response='+fields.captchaResponse, function(err, captchaRes, body){
+            console.log(body);
+            if(err || body.success == false){
+                res.json({
+                    err: 'CAPTCHA_ERROR',
+                    msg: 'ReCAPTCHA validation error'
+                })
+            }
         G.user.findOne({name: fields.username}, 'name', function(err, data){
             if(!err){
                 if(!data){
@@ -121,6 +133,7 @@ G.app.post('/registerUser', function(req, res){
                     }
                 }
             })
+    });
     });
 });
 
