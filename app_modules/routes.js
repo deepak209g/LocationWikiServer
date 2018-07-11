@@ -79,12 +79,12 @@ G.app.post('/login', function(req, res){
 
 // logout
 G.app.get('/logout', function(req, res){
-    req.session = null;
+    req.session.isLogin=false;
     res.json({
         err: 'SUCCESS_LOGOUT',
         msg: 'User logged out successfully.'
-    })
-})
+    });
+});
 
 
 // Register new user
@@ -148,14 +148,14 @@ G.app.post('/registerUser', function(req, res){
                 msg: 'Something went wrong. Please login again !!'
 
             })
-        }
+        }else{
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
             if(fields.lat){
-                fields.lat = round(fields.lat, 3)
+                fields.lat = round(fields.lat, 4)
             }
             if(fields.lon){
-                fields.lon = round(fields.lon, 3)
+                fields.lon = round(fields.lon, 4)
             }
             G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id', function(err, data){
                 if(!err){
@@ -212,6 +212,7 @@ G.app.post('/registerUser', function(req, res){
                 }
             })
         });
+    }
     });
 
     // get commets
@@ -220,10 +221,10 @@ G.app.post('/registerUser', function(req, res){
         console.log(req.query);
         var fields = req.query
         if(fields.lat){
-            fields.lat = round(fields.lat, 3)
+            fields.lat = round(fields.lat, 4)
         }
         if(fields.lon){
-            fields.lon = round(fields.lon, 3)
+            fields.lon = round(fields.lon, 4)
         }
         console.log(fields)
         G.location.find({lat: fields.lat, lon: fields.lon})
@@ -277,10 +278,10 @@ G.app.post('/registerUser', function(req, res){
         console.log(req.query);
         var fields = req.query
         if(fields.lat){
-            fields.lat = round(fields.lat, 3)
+            fields.lat = round(fields.lat, 4)
         }
         if(fields.lon){
-            fields.lon = round(fields.lon, 3)
+            fields.lon = round(fields.lon, 4)
         }
         console.log(fields)
         G.location.find({lat: fields.lat, lon: fields.lon})
@@ -304,16 +305,15 @@ G.app.post('/registerUser', function(req, res){
             res.json({
                 err: 'INVALID_SESSION',
                 msg: 'Something went wrong. Please login again !!'
-
             })
-        }
+        }else{
         var form = new G.formidable.IncomingForm();
         form.parse(req, function(err, fields, files) {
             if(fields.lat){
-                fields.lat = round(fields.lat, 3)
+                fields.lat = round(fields.lat, 4)
             }
             if(fields.lon){
-                fields.lon = round(fields.lon, 3)
+                fields.lon = round(fields.lon, 4)
             }
             G.location.findOne({lat: fields.lat, lon: fields.lon}, '_id stars', function(err, data){
                 if(!err){
@@ -391,6 +391,7 @@ G.app.post('/registerUser', function(req, res){
                 }
             })
         });
+    }
     });
 
 
@@ -401,8 +402,8 @@ G.app.post('/registerUser', function(req, res){
         var lat = req.query.lat;
         var lon = req.query.lon;
         console.log(lat)
-        lat = round(lat, 3)
-        lon = round(lon, 3)
+        lat = round(lat, 4)
+        lon = round(lon, 4)
 
         lat_two_km = {$lt: lat + 0.02, $gt : lat - 0.02}
         lon_two_km = {$lt: lon + 0.02, $gt : lon - 0.02}
